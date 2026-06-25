@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+
+# Prebuilt KB index (may contain internal content; rebuild via build_index.py)
+src/kb_mcp/kb_index.npy
+src/kb_mcp/kb_meta.json
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

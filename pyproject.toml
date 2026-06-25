@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kb-mcp"
+version = "0.1.0"
+description = "Semantic search MCP server for the Acumatica KB Obsidian vault"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]",
+    "numpy",
+    "sentence-transformers",
+]
+
+[project.scripts]
+kb-mcp = "kb_mcp.server:mcp.run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
