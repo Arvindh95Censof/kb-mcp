@@ -15,7 +15,7 @@ Reuses the embeddings already computed by the Smart Connections plugin (`TaylorA
 ### 1. Install
 
 ```bash
-cd C:\Users\CSM-Arvindh\OneDrive - Censof Holdings\Desktop\OPEX\kb-mcp
+cd path\to\kb-mcp
 python -m venv .venv
 .venv\Scripts\activate
 pip install -e .
@@ -25,7 +25,7 @@ pip install -e .
 
 ```bash
 # with .venv active, from the kb-mcp folder:
-set KB_VAULT_DIR=C:\Users\CSM-Arvindh\OneDrive - Censof Holdings\Desktop\OPEX\Acumatica-KB
+set KB_VAULT_DIR=path\to\Acumatica-KB
 python -m kb_mcp.build_index
 ```
 
@@ -40,10 +40,10 @@ Add to `claude_desktop_config.json` (found at `%APPDATA%\Claude\claude_desktop_c
 {
   "mcpServers": {
     "kb-mcp": {
-      "command": "C:\\Users\\CSM-Arvindh\\OneDrive - Censof Holdings\\Desktop\\OPEX\\kb-mcp\\.venv\\Scripts\\python.exe",
+      "command": "C:\\path\\to\\kb-mcp\\.venv\\Scripts\\python.exe",
       "args": ["-m", "kb_mcp.server"],
       "env": {
-        "KB_VAULT_DIR": "C:\\Users\\CSM-Arvindh\\OneDrive - Censof Holdings\\Desktop\\OPEX\\Acumatica-KB"
+        "KB_VAULT_DIR": "C:\\path\\to\\Acumatica-KB"
       }
     }
   }
