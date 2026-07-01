@@ -1,7 +1,12 @@
-# kb-mcp
+# grp-kb-mcp
 
 Semantic search MCP server for the Acumatica KB Obsidian vault.  
 Reuses the embeddings already computed by the Smart Connections plugin (`TaylorAI/bge-micro-v2`, 384-dim).
+
+Published as `grp-kb-mcp` on PyPI (the import package stays `kb_mcp`). Note: unlike a
+turnkey library, this still requires an Obsidian vault with Smart Connections embeddings
+already computed — installing from PyPI saves you the `git clone` + editable-install step,
+not the vault/index setup below.
 
 ## Tools
 
