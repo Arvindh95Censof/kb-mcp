@@ -3,10 +3,13 @@ requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kb-mcp"
+name = "grp-kb-mcp"
 version = "0.1.0"
-description = "Semantic search MCP server for the Acumatica KB Obsidian vault"
+description = "Semantic search MCP server for an Acumatica KB Obsidian vault (Smart Connections embeddings)"
+readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Arvindh" }]
 dependencies = [
     "mcp[cli]",
     "numpy",
@@ -14,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kb-mcp = "kb_mcp.server:mcp.run"
+grp-kb-mcp = "kb_mcp.server:mcp.run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
