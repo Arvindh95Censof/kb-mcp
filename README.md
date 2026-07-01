@@ -32,6 +32,24 @@ python -m kb_mcp.build_index
 This creates `kb_index.npy` and `kb_meta.json` inside `src\kb_mcp\`.  
 Re-run only if you add new notes to the vault (and re-index in Obsidian Smart Connections first).
 
+#### Multiple vaults
+
+The index can ingest extra Smart Connections vaults alongside the primary one via
+`KB_EXTRA_VAULTS` — a `;`-separated list of `LABEL=PATH` pairs. Each extra vault's
+records get `guide=LABEL` (so `search_kb(..., guide_filter="GRP")` isolates them)
+and an absolute `vault_root` baked into the metadata, so **the server needs no extra
+env** — it reads those files from the baked-in root. Records under `copilot/` are
+skipped as plugin cruft.
+
+```powershell
+$env:KB_VAULT_DIR    = "C:\...\Acumatica-KB"
+$env:KB_EXTRA_VAULTS = "GRP=C:\...\GRPUserManuals-Markdown"
+python -m kb_mcp.build_index
+```
+
+Or just run `.\rebuild.ps1` (has both vault paths baked in). **Restart the kb-mcp
+server afterward** — it loads the index once at startup.
+
 ### 3. Register with Claude Desktop
 
 Add to `claude_desktop_config.json` (found at `%APPDATA%\Claude\claude_desktop_config.json`):

@@ -21,11 +21,21 @@ if (-not (Test-Path "$KbMcpDir\pyproject.toml")) {
 }
 Write-OK $KbMcpDir
 
-# ── 2. Locate the vault (sibling folder Acumatica-KB) ────────────────────────
+# ── 2. Locate the vault ────────────────────────────────────────────────────
 Write-Step "Locating Acumatica-KB vault"
-$VaultDir = Join-Path (Split-Path -Parent $KbMcpDir) "Acumatica-KB"
-if (-not (Test-Path $VaultDir)) {
-    Write-Fail "Cannot find Acumatica-KB at $VaultDir — make sure OneDrive has finished syncing."
+if ($env:KB_VAULT_DIR -and (Test-Path $env:KB_VAULT_DIR)) {
+    $VaultDir = $env:KB_VAULT_DIR
+} else {
+    $McpsDir    = Split-Path -Parent $KbMcpDir
+    $DesktopDir = Split-Path -Parent $McpsDir
+    $Candidates = @(
+        (Join-Path $DesktopDir "OPEX\Acumatica-KB"),   # current real location
+        (Join-Path $McpsDir "Acumatica-KB")             # legacy sibling-of-kb-mcp layout
+    )
+    $VaultDir = $Candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $VaultDir) {
+    Write-Fail "Cannot find Acumatica-KB. Looked in:`n     $($Candidates -join "`n     ")`n   Make sure OneDrive has finished syncing, or set `$env:KB_VAULT_DIR manually and re-run."
 }
 Write-OK $VaultDir
 

@@ -48,6 +48,13 @@ _vectors = np.load(str(INDEX_NPY))          # (N, 384) float32, L2-normalised
 _meta: list[dict] = json.loads(INDEX_META.read_text(encoding="utf-8"))
 print(f"Index ready: {len(_meta)} vectors.", file=sys.stderr, flush=True)
 
+# Extra vaults (e.g. GRP) bake an absolute 'vault_root' into their records, so
+# the server can read their files without any extra env. Collect them for
+# read_kb_file path resolution.
+_extra_roots = sorted({m["vault_root"] for m in _meta if m.get("vault_root")})
+if _extra_roots:
+    print(f"Extra vault roots: {_extra_roots}", file=sys.stderr, flush=True)
+
 # ── embed model (loaded at startup so first query doesn't timeout) ───────────
 from sentence_transformers import SentenceTransformer
 print("Loading TaylorAI/bge-micro-v2 …", file=sys.stderr, flush=True)
@@ -63,9 +70,10 @@ def _embed(text: str) -> np.ndarray:
     return vec.astype(np.float32)
 
 
-def _read_snippet(md_path: str, lines: Optional[list]) -> str:
+def _read_snippet(md_path: str, lines: Optional[list], vault_root: str = "") -> str:
     """Read lines from the vault file. Falls back to first SNIPPET_LINES lines."""
-    full = VAULT_DIR / md_path
+    root = Path(vault_root) if vault_root else VAULT_DIR
+    full = root / md_path
     if not full.exists():
         return ""
     all_lines = full.read_text(encoding="utf-8").splitlines()
@@ -121,7 +129,7 @@ def search_kb(
     results = []
     for idx in top_idx:
         m = _meta[idx]
-        snippet = _read_snippet(m["path"], m.get("lines"))
+        snippet = _read_snippet(m["path"], m.get("lines"), m.get("vault_root", ""))
         results.append(
             {
                 "score": round(float(scores[idx]), 4),
@@ -147,10 +155,12 @@ def read_kb_file(path: str) -> str:
         path: Relative path to the .md file, e.g.
               'AI_Assistant_Leveraging_the_AI_Assistant__e5b8f65c.md'
     """
-    full = VAULT_DIR / path
-    if not full.exists():
-        return f"File not found: {path}"
-    return full.read_text(encoding="utf-8")
+    # primary vault first, then any extra vault roots (GRP, etc.)
+    for root in [VAULT_DIR, *(Path(r) for r in _extra_roots)]:
+        full = root / path
+        if full.exists():
+            return full.read_text(encoding="utf-8")
+    return f"File not found: {path}"
 
 
 if __name__ == "__main__":
