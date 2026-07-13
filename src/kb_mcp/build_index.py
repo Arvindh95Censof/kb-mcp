@@ -68,7 +68,7 @@ def parse_ajson(path: Path) -> dict:
     return json.loads("{" + text + "}")
 
 
-def ingest_vault(vault: dict, vecs: list, meta: list) -> int:
+def ingest_vault(vault: dict, vecs: list, meta: list, seen: set) -> int:
     root = vault["root"]
     smart_env = root / ".smart-env" / "multi"
     if not smart_env.exists():
@@ -79,6 +79,7 @@ def ingest_vault(vault: dict, vecs: list, meta: list) -> int:
     print(f"Vault {label}: {len(ajson_files)} .ajson files in {smart_env}")
 
     added = 0
+    dup = 0
     for i, fp in enumerate(ajson_files):
         if i % 1000 == 0 and i:
             print(f"  {i}/{len(ajson_files)} files…")
@@ -99,6 +100,14 @@ def ingest_vault(vault: dict, vecs: list, meta: list) -> int:
             is_block = key.startswith("smart_blocks:")
             if not (is_source or is_block):
                 continue
+
+            # Smart Connections writes a per-device copy (…_md-<HOST>.ajson) next
+            # to the base …_md.ajson, so the same record key shows up in both
+            # files. Keep the first occurrence, skip the rest.
+            if key in seen:
+                dup += 1
+                continue
+            seen.add(key)
 
             md_path = entry.get("path") or ""
             if not md_path and is_block:
@@ -141,7 +150,8 @@ def ingest_vault(vault: dict, vecs: list, meta: list) -> int:
             vecs.append(vec)
             meta.append(record)
             added += 1
-    print(f"  -> {added} vectors from {label}")
+    dup_note = f" ({dup} per-device duplicates skipped)" if dup else ""
+    print(f"  -> {added} vectors from {label}{dup_note}")
     return added
 
 
@@ -149,8 +159,9 @@ def build():
     vaults = get_vaults()
     vecs: list = []
     meta: list = []
+    seen: set = set()
     for v in vaults:
-        ingest_vault(v, vecs, meta)
+        ingest_vault(v, vecs, meta, seen)
 
     arr = np.array(vecs, dtype=np.float32)
     norms = np.linalg.norm(arr, axis=1, keepdims=True)

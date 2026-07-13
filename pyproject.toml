@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grp-kb-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "Semantic search MCP server for an Acumatica KB Obsidian vault (Smart Connections embeddings)"
 readme = "README.md"
 requires-python = ">=3.11"
