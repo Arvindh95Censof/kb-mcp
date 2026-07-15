@@ -42,6 +42,50 @@ Practical expectations for a vault of real size: order of magnitude ~800 MB,
 ~12,000 embedding files — the first sync may take a while depending on your
 connection.
 
+> **⚠️ On this path, do NOT install Obsidian or Smart Connections.**
+>
+> They are the *authoring* layer (layer 2). You are only *reading* — the shared
+> vault already contains its embeddings, in the `.smart-env` folder inside it,
+> and grp-kb-mcp reads those directly. Nothing here needs Obsidian.
+>
+> This is not a "you can skip it" nicety — installing them is the single most
+> common way this setup goes wrong. **Smart Connections does not wait for your
+> file sync to finish.** Enable it while OneDrive is still pulling ~12,000
+> `.ajson` files and it sees a partial/empty `.smart-env`, concludes the notes
+> are unembedded, and re-embeds all ~12,000 of them. It wins the race; the real
+> vectors landing afterwards are ignored. Hours of CPU to recompute what you had
+> already been given.
+>
+> Only install Obsidian + Smart Connections if this machine will **author or
+> edit notes**. If it does, its bundled model MUST match the one that produced
+> the existing vectors — see the A2.5 warning.
+
+**Let the sync FULLY complete before running anything.** Two steps:
+
+1. **Defeat Files On-Demand.** It is ON by default on a fresh Windows machine,
+   which leaves files as cloud-only placeholders — `build_index` then reads no
+   vectors and produces a silently empty index. Right-click the synced vault
+   folder → **"Always keep on this device"**.
+2. **Verify zero placeholders** before continuing (PowerShell; `0x400000` is
+   `RecallOnDataAccess`, the dehydrated-placeholder attribute):
+
+   ```powershell
+   $v = "C:\path\to\Acumatica-KB"
+   $f = Get-ChildItem $v -Recurse -File -Force
+   "files: {0}  MB: {1}  cloud-only: {2}" -f $f.Count,
+     [math]::Round(($f | Measure-Object Length -Sum).Sum/1MB,1),
+     ($f | Where-Object { $_.Attributes -band 0x400000 }).Count
+   ```
+
+   `cloud-only` must be **0**. A healthy reference (2026-07-15): 11,941 `.md`
+   + 12,358 `.smart-env` files, ~740 MB, 0 cloud-only.
+
+**Shortcut — skip the index build entirely.** `build_index`'s output is just two
+files. If the vault owner sends you their `kb_index.npy` + `kb_meta.json`
+(~206 MB), drop them in a folder, point `KB_MCP_INDEX_DIR` at it, and skip
+Part D. They are gitignored (so a `git clone` never brings them), which is the
+*only* reason Part D exists on this path.
+
 ### Path 2 — Building the knowledge base from scratch
 
 **A2.1 — Install Obsidian.**
@@ -251,6 +295,34 @@ path in Part F is wrong or the folder hasn't finished syncing yet. If
 `search_kb` returns results but they're all irrelevant nonsense, re-check the
 "0 vectors found" warning in Part D — the embedding-model mismatch produces
 exactly this kind of silent, confusing failure.
+
+---
+
+## Troubleshooting — "why is my new laptop re-embedding / downloading again?"
+
+The vault and its embeddings live in OneDrive and sync. So on a fresh machine
+these three things have three *different* causes — only one is a bug.
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Smart Connections re-embeds all ~12,000 notes | **Bug.** Obsidian + SC were installed on a read-only machine, and SC started before the sync finished (or read placeholders) | Don't install Obsidian/SC on this path at all (Part A, Path 1). If already installed: let the sync fully complete FIRST, then reopen |
+| `build_index` must be re-run | **Expected.** `kb_index.npy` / `kb_meta.json` are gitignored, so a `git clone` never carries them | Run Part D — it's offline and needs no model. Or copy the 2 files (~206 MB) from a machine that has them |
+| ~68 MB model downloads on first search | **Expected by design.** The model lives in the HuggingFace cache (`HF_HOME`), not in the vault — it embeds your *query* at search time | Let it download once. Or copy the `HF_HOME` folder over and set `HF_HOME` to it |
+
+Key point: **synced vault ≠ no re-embed.** Being fully synced is exactly why a
+re-embed is a red flag — the vectors were already there. The race is against
+sync completion, not against OneDrive having the data.
+
+Diagnosing an empty/garbage index (`build_index` reports 0 vectors, or search
+returns nothing):
+
+1. **Placeholders** — run the `cloud-only` check in Part A, Path 1. Must be `0`.
+2. **Model mismatch** — the A2.5 warning. If SC used a model other than
+   `TaylorAI/bge-micro-v2`, its vectors sit under a different key and
+   `build_index` skips those notes **silently**, reporting a clean build with no
+   content. This fails quietly, which is what makes it nasty.
+3. **Stale index** — the index is a snapshot; re-run Part D after any vault
+   refresh.
 
 ---
 
