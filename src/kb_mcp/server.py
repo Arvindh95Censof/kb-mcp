@@ -55,19 +55,21 @@ _extra_roots = sorted({m["vault_root"] for m in _meta if m.get("vault_root")})
 if _extra_roots:
     print(f"Extra vault roots: {_extra_roots}", file=sys.stderr, flush=True)
 
-# ── embed model (lazy: loaded on first search_kb call, not at import, so the
-# stdio transport can answer `initialize` immediately instead of blocking the
-# MCP client's connect handshake for the ~10-18s model load) ─────────────────
-_model = None
+# ── embed model ──────────────────────────────────────────────────────────────
+# Loaded EAGERLY here, on the main thread, before mcp.run(). Do NOT make this
+# lazy: importing sentence_transformers from any non-main thread inside this
+# process (FastMCP's tool-dispatch thread, or a startup daemon thread) hangs
+# indefinitely — the import never returns. The main-thread import works fine
+# (~7-13s). This adds a one-time delay before the server starts answering the
+# stdio handshake, but every query afterwards is instant.
+print("Loading TaylorAI/bge-micro-v2 …", file=sys.stderr, flush=True)
+from sentence_transformers import SentenceTransformer
+
+_model = SentenceTransformer("TaylorAI/bge-micro-v2")
+print("Model ready.", file=sys.stderr, flush=True)
 
 
 def _get_model():
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        print("Loading TaylorAI/bge-micro-v2 …", file=sys.stderr, flush=True)
-        _model = SentenceTransformer("TaylorAI/bge-micro-v2")
-        print("Model ready.", file=sys.stderr, flush=True)
     return _model
 
 
